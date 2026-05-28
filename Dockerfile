@@ -1,26 +1,31 @@
 FROM php:8.2-apache
 
-# Instalar dependencias del sistema
+# Dependencias del sistema
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
+    pkg-config \
     libssl-dev \
-    pkg-config
+    && rm -rf /var/lib/apt/lists/*
 
 # Instalar extensión MongoDB
-RUN pecl install mongodb \
-    && docker-php-ext-enable mongodb
+RUN pecl install mongodb
+
+RUN docker-php-ext-enable mongodb
+
+# Verificar que MongoDB quedó instalado
+RUN php -m | grep mongodb
 
 # Instalar Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Directorio de trabajo
+ENV COMPOSER_ALLOW_SUPERUSER=1
+
 WORKDIR /var/www/html
 
-# Copiar archivos
 COPY . .
 
-# Instalar dependencias PHP
-RUN composer install
+# Instalar dependencias ignorando platform reqs temporalmente
+RUN composer install --ignore-platform-req=ext-mongodb
 
 EXPOSE 80
